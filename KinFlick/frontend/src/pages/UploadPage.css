@@ -1,0 +1,62 @@
+.upload-page {
+  padding: 20px 0;
+}
+
+.upload-page h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.upload-section, .photos-section {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.upload-section h2, .photos-section h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.selection-info {
+  margin-bottom: 15px;
+  color: #4a90e2;
+  font-weight: 500;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.generate-btn {
+  display: block;
+  margin: 30px auto 0;
+  padding: 12px 25px;
+  font-size: 1.1rem;
+}
+
+.no-photos {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .upload-page h1 {
+    font-size: 1.8rem;
+  }
+  
+  .upload-section h2, .photos-section h2 {
+    font-size: 1.3rem;
+  }
+  
+  .upload-section, .photos-section {
+    padding: 15px;
+  }
+}

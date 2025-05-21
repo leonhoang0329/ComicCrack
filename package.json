@@ -1,0 +1,16 @@
+{
+  "name": "kinflick",
+  "version": "1.0.0",
+  "description": "Photo Diary Generator using Claude Vision",
+  "scripts": {
+    "start": "bash start.sh",
+    "start-backend": "cd KinFlick/backend && npm start",
+    "start-frontend": "cd KinFlick/frontend && npm start",
+    "install-all": "npm install && cd KinFlick/backend && npm install && cd ../frontend && npm install"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.5.0"
+  }
+}

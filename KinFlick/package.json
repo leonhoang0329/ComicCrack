@@ -1,0 +1,19 @@
+{
+  "name": "kinflick",
+  "version": "1.0.0",
+  "description": "Photo diary generator app with Claude Vision",
+  "scripts": {
+    "start": "node backend/server.js",
+    "server": "nodemon backend/server.js",
+    "client": "npm start --prefix frontend",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "npm run build --prefix frontend",
+    "prod": "NODE_ENV=production node backend/server.js"
+  },
+  "dependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
