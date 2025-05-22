@@ -60,22 +60,32 @@ const DiaryPageRenderer = ({ diaryPage }) => {
         </div>
         
         {isPanelFormat ? (
-          <div className="panel-content">
+          <div className="comic-grid">
             {diaryPage.photos.map((photo, index) => {
-              const panelData = diaryPage.content[index] || { punchline: '', description: '' };
+              // Ensure we don't go beyond available content
+              // If content array is shorter than photos array, use the content in order until we run out
+              const contentIndex = Math.min(index, diaryPage.content.length - 1);
+              const panelData = diaryPage.content[contentIndex] || { punchline: '', description: '' };
               
               return (
-                <div key={photo._id} className="panel-item">
-                  <div className="panel-photo-container">
+                <div key={photo._id} className="comic-row">
+                  {/* Photo Panel */}
+                  <div className="comic-panel photo-panel">
                     <img 
                       src={`${process.env.REACT_APP_API_URL || ''}/${photo.path}`} 
                       alt={photo.caption || `Photo ${index + 1}`}
                       className="panel-photo" 
                     />
-                    <div className="panel-punchline">{panelData.punchline}</div>
+                    <div className="panel-punchline speech-bubble">
+                      <p>{panelData.punchline}</p>
+                    </div>
                   </div>
-                  <div className="panel-description">
-                    <p>{panelData.description}</p>
+                  
+                  {/* Text Panel */}
+                  <div className="comic-panel text-panel">
+                    <div className="panel-description thought-bubble">
+                      <p>{panelData.description}</p>
+                    </div>
                   </div>
                 </div>
               );

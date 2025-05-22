@@ -87,7 +87,9 @@ const DiaryPage = () => {
               </div>
               
               <div className="diary-content-preview">
-                {page.content.substring(0, 150)}...
+                {Array.isArray(page.content) 
+                  ? `${page.content.length} panel${page.content.length !== 1 ? 's' : ''} with photos and captions` 
+                  : (typeof page.content === 'string' ? page.content.substring(0, 150) + '...' : 'View diary page for content')}
               </div>
               
               <div className="diary-actions">

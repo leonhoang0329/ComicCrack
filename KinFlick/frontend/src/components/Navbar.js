@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import logo from '../logo.png';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -16,7 +17,10 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="container navbar-container">
         <div className="navbar-brand">
-          <Link to="/">KinFlick</Link>
+          <Link to="/">
+            <img src={logo} alt="ComicCrack Logo" className="navbar-logo" />
+            <span className="navbar-title">ComicCrack</span>
+          </Link>
         </div>
         <ul className="navbar-menu">
           <li className="navbar-item">
@@ -28,7 +32,7 @@ const Navbar = () => {
                 <Link to="/upload">Upload Photos</Link>
               </li>
               <li className="navbar-item">
-                <Link to="/diary">My Diary</Link>
+                <Link to="/diary">My Funny Daily Story</Link>
               </li>
               <li className="navbar-item">
                 <button onClick={handleLogout} className="btn-link">Logout</button>

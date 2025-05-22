@@ -44,8 +44,10 @@ const RegisterPage = () => {
       setIsLoading(true);
       setError(null);
       
-      await register(username, email, password);
-      navigate('/');
+      const userData = await register(username, email, password);
+      if (userData) {
+        navigate('/');
+      }
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed');
       setIsLoading(false);

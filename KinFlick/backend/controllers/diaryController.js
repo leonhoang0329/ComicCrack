@@ -26,10 +26,19 @@ exports.createDiaryPage = async (req, res) => {
       return res.status(404).json({ message: 'No valid photos found' });
     }
 
-    // Generate content using Claude Vision
+    // Generate content using Claude Vision - we'll process photos sequentially but won't use SSE
     console.log('Backend: Calling Claude Vision service');
     const content = await claudeService.generateDiaryContent(photos);
-    console.log('Backend: Generated content from Claude Vision');
+    console.log('Backend: Generated content from Claude Vision', { contentLength: content.length });
+    
+    // Ensure we have content for each photo
+    // If Claude didn't generate enough content, fill in the blanks
+    while (content.length < photos.length) {
+      content.push({
+        punchline: "Caption unavailable",
+        description: "Our AI couldn't generate a story for this image. Please try again or choose a different photo."
+      });
+    }
 
     // Create diary page
     console.log('Backend: Creating diary page in database');
@@ -41,8 +50,13 @@ exports.createDiaryPage = async (req, res) => {
 
     // Populate photos for response
     await diaryPage.populate('photos');
-    console.log('Backend: Diary page created successfully', { diaryPageId: diaryPage._id });
+    console.log('Backend: Diary page created successfully', { 
+      diaryPageId: diaryPage._id, 
+      photoCount: diaryPage.photos.length, 
+      contentCount: diaryPage.content.length 
+    });
 
+    // Send standard JSON response
     res.status(201).json(diaryPage);
   } catch (error) {
     console.error('Backend: Diary creation error:', error);

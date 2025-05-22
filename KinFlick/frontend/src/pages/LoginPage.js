@@ -32,8 +32,10 @@ const LoginPage = () => {
       setIsLoading(true);
       setError(null);
       
-      await login(email, password);
-      navigate('/');
+      const userData = await login(email, password);
+      if (userData) {
+        navigate('/');
+      }
     } catch (error) {
       setError(error.response?.data?.message || 'Login failed. Please check your credentials.');
       setIsLoading(false);

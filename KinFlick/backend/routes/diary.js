@@ -3,11 +3,11 @@ const router = express.Router();
 const { createDiaryPage, getUserDiaryPages, getDiaryPage, deleteDiaryPage } = require('../controllers/diaryController');
 const auth = require('../middleware/auth');
 
-// Create a diary page
-router.post('/', auth, createDiaryPage);
-
 // Get user's diary pages
 router.get('/', auth, getUserDiaryPages);
+
+// Create a diary page
+router.post('/', auth, createDiaryPage);
 
 // Get a specific diary page
 router.get('/:id', auth, getDiaryPage);
