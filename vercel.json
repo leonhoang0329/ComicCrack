@@ -1,11 +1,14 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" }
+    { "src": "server.js", "use": "@vercel/node" },
+    { "src": "KinFlick/frontend/build/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js" },
-    { "src": "/(.*)", "dest": "/KinFlick/frontend/build/$1" }
+    { "src": "/api/(.*)", "dest": "server.js" },
+    { "src": "/(.*\\.(js|css|json|png|jpg|svg|ico))", "dest": "/KinFlick/frontend/build/$1" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "server.js" }
   ],
   "env": {
     "MONGODB_URI": "@mongodb_uri",
