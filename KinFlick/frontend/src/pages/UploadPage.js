@@ -163,7 +163,7 @@ const UploadPage = () => {
                     <div className="photo-preview">
                       {getPhotoById(processingProgress.photoId) && (
                         <img 
-                          src={`${process.env.REACT_APP_API_URL || ''}/${getPhotoById(processingProgress.photoId)?.path}`} 
+                          src={getPhotoById(processingProgress.photoId)?.path || ''} 
                           alt="Processing" 
                         />
                       )}

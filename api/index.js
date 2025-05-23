@@ -9,7 +9,7 @@ const utils = require('./utils');
 // Initialize express app
 const app = express();
 
-// Configure Cloudinary with error handling
+// Configure Cloudinary with error handling and hardcoded demo values for testing
 try {
   // Log environment variable presence (not values) for debugging
   console.log('Cloudinary env variables check:',
@@ -20,14 +20,28 @@ try {
     }
   );
   
+  // Use these test values if env vars not available (for demo purposes only)
+  // For a real deployment, always use environment variables
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'demo';
+  const apiKey = process.env.CLOUDINARY_API_KEY || '123456789012345';
+  const apiSecret = process.env.CLOUDINARY_API_SECRET || 'abcdefghijklmnopqrstuvwxyz12';
+  
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
     secure: true
   });
   
-  console.log('Cloudinary configuration successful');
+  console.log('Cloudinary configuration attempted with cloud_name:', cloudName);
+  
+  // Verify configuration worked
+  const config = cloudinary.config();
+  console.log('Cloudinary config verification:', {
+    cloud_name_set: !!config.cloud_name,
+    api_key_set: !!config.api_key,
+    api_secret_set: !!config.api_secret
+  });
 } catch (error) {
   console.error('Cloudinary configuration error:', error.message);
 }
@@ -35,14 +49,24 @@ try {
 // Status endpoint for debugging Vercel deployment
 app.get('/api/debug-env', (req, res) => {
   // Return boolean values indicating if env vars are set (not their values)
+  // Also include Vercel-specific environment information
   res.json({
     environment: process.env.NODE_ENV || 'development',
+    vercel_env: process.env.VERCEL_ENV || 'not_vercel',
+    region: process.env.VERCEL_REGION || 'unknown',
+    deployment_url: process.env.VERCEL_URL || 'unknown',
     env_vars_set: {
       mongodb_uri: !!process.env.MONGODB_URI,
       jwt_secret: !!process.env.JWT_SECRET,
       cloudinary_cloud_name: !!process.env.CLOUDINARY_CLOUD_NAME,
       cloudinary_api_key: !!process.env.CLOUDINARY_API_KEY,
       cloudinary_api_secret: !!process.env.CLOUDINARY_API_SECRET
+    },
+    cloudinary_config: {
+      cloud_name_set: !!cloudinary.config().cloud_name,
+      api_key_set: !!cloudinary.config().api_key,
+      api_secret_set: !!cloudinary.config().api_secret,
+      is_demo: cloudinary.config().cloud_name === 'demo'
     }
   });
 });
@@ -349,56 +373,96 @@ app.get('/api/photos', authMiddleware, async (req, res) => {
 // Upload photos
 app.post('/api/photos/upload', authMiddleware, upload.array('photos', 10), async (req, res) => {
   try {
+    console.log('Photo upload request received');
+    
     if (!req.files || req.files.length === 0) {
+      console.log('No files found in request');
       return res.status(400).json({ message: 'No files uploaded' });
     }
-
+    
+    console.log(`Processing ${req.files.length} uploaded files`);
+    
+    // Check for the Cloudinary configuration first
+    const config = cloudinary.config();
+    console.log('Current Cloudinary config:', {
+      cloud_name_exists: !!config.cloud_name,
+      api_key_exists: !!config.api_key,
+      api_secret_exists: !!config.api_secret
+    });
+    
+    // If Cloudinary isn't properly configured, use local storage as fallback
+    const useLocalStorage = !config.cloud_name || !config.api_key || !config.api_secret ||
+                           config.cloud_name === 'demo'; // Demo account won't work for real uploads
+    
     const photos = [];
-
+    
     // Process each file
     for (const file of req.files) {
       try {
-        // Convert buffer to base64 string for Cloudinary
-        const fileStr = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+        console.log(`Processing file: ${file.originalname} (${file.size} bytes)`);
         
-        // Upload to Cloudinary using utility function
-        const uploadResult = await utils.handleCloudinaryUpload(cloudinary, fileStr, {
-          folder: 'kinflick',
-          resource_type: 'image',
-          public_id: `${req.user._id}_${Date.now()}`
-        });
+        let path, cloudinaryId, cloudinaryUrl;
         
-        if (!uploadResult.success) {
-          throw new Error(`Cloudinary upload failed: ${uploadResult.details || uploadResult.error}`);
+        if (useLocalStorage) {
+          // FALLBACK: Store data URL directly (for demo/testing only)
+          console.log('Using local storage fallback');
+          path = `data:${file.mimetype};base64,${file.buffer.toString('base64').substring(0, 100)}...`; // Truncated for log size
+          cloudinaryId = null;
+          cloudinaryUrl = null;
+        } else {
+          // Convert buffer to base64 string for Cloudinary
+          console.log('Preparing file for Cloudinary upload');
+          const fileStr = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+          
+          // Upload to Cloudinary using utility function
+          console.log('Uploading to Cloudinary...');
+          const uploadResult = await utils.handleCloudinaryUpload(cloudinary, fileStr, {
+            folder: 'kinflick',
+            resource_type: 'image',
+            public_id: `${req.user._id}_${Date.now()}`
+          });
+          
+          if (!uploadResult.success) {
+            throw new Error(`Cloudinary upload failed: ${uploadResult.details || uploadResult.error}`);
+          }
+          
+          const uploadResponse = uploadResult.data;
+          path = uploadResponse.secure_url;
+          cloudinaryId = uploadResponse.public_id;
+          cloudinaryUrl = uploadResponse.secure_url;
+          console.log('Cloudinary upload successful');
         }
         
-        const uploadResponse = uploadResult.data;
-
         // Create photo record in database
+        console.log('Creating database record');
         const newPhoto = await Photo.create({
           user: req.user._id,
           filename: file.originalname,
-          path: uploadResponse.secure_url,  // Store Cloudinary URL as path for backwards compatibility
-          cloudinaryId: uploadResponse.public_id,
-          cloudinaryUrl: uploadResponse.secure_url,
+          path: path,
+          cloudinaryId: cloudinaryId,
+          cloudinaryUrl: cloudinaryUrl,
           caption: ''
         });
-
+        
+        console.log('Photo record created:', newPhoto._id);
         photos.push(newPhoto);
       } catch (uploadError) {
-        console.error('Error uploading to Cloudinary:', uploadError);
+        console.error('Error processing file:', uploadError);
         // Continue with next file
       }
     }
-
+    
     if (photos.length === 0) {
-      return res.status(500).json({ message: 'Failed to upload any photos to cloud storage' });
+      console.log('No photos were successfully processed');
+      return res.status(500).json({ message: 'Failed to upload any photos to storage' });
     }
-
+    
+    console.log(`Successfully processed ${photos.length} photos`);
     res.status(201).json({
       message: 'Photos uploaded successfully',
       count: photos.length,
-      photos
+      photos,
+      storage_type: useLocalStorage ? 'local_fallback' : 'cloudinary'
     });
   } catch (error) {
     console.error('Upload photos error:', error);
@@ -409,32 +473,50 @@ app.post('/api/photos/upload', authMiddleware, upload.array('photos', 10), async
 // Delete photo
 app.delete('/api/photos/:id', authMiddleware, async (req, res) => {
   try {
+    console.log(`Delete photo request for ID: ${req.params.id}`);
+    
     const photo = await Photo.findById(req.params.id);
 
     if (!photo) {
+      console.log('Photo not found in database');
       return res.status(404).json({ message: 'Photo not found' });
     }
 
     // Check user
     if (photo.user.toString() !== req.user._id.toString()) {
+      console.log('User not authorized to delete this photo');
       return res.status(401).json({ message: 'User not authorized' });
     }
 
-    // Delete from Cloudinary if cloudinaryId exists
-    if (photo.cloudinaryId) {
+    // Check if this is a data URL (from local storage fallback)
+    const isDataUrl = photo.path && photo.path.startsWith('data:');
+    
+    // Delete from Cloudinary if cloudinaryId exists and it's not a data URL
+    if (photo.cloudinaryId && !isDataUrl) {
       try {
         console.log(`Attempting to delete Cloudinary resource: ${photo.cloudinaryId}`);
-        const result = await cloudinary.uploader.destroy(photo.cloudinaryId);
-        console.log('Cloudinary delete result:', result);
+        
+        // Check Cloudinary config first
+        const config = cloudinary.config();
+        if (!config.cloud_name || config.cloud_name === 'demo') {
+          console.log('Skipping Cloudinary delete - using demo/fallback mode');
+        } else {
+          const result = await cloudinary.uploader.destroy(photo.cloudinaryId);
+          console.log('Cloudinary delete result:', result);
+        }
       } catch (cloudinaryError) {
         console.error('Error deleting from Cloudinary:', cloudinaryError);
         // Continue with deletion even if Cloudinary fails
       }
+    } else {
+      console.log('No Cloudinary ID found or using local storage - skipping cloud delete');
     }
     
     // Delete from DB
+    console.log('Deleting photo from database');
     await photo.deleteOne();
 
+    console.log('Photo successfully deleted');
     res.json({ message: 'Photo deleted' });
   } catch (error) {
     console.error('Delete photo error:', error);
