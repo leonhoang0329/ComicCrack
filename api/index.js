@@ -9,41 +9,55 @@ const utils = require('./utils');
 // Initialize express app
 const app = express();
 
-// Configure Cloudinary with error handling and hardcoded demo values for testing
+// Directly configure Cloudinary with hard-coded values for testing
+// IMPORTANT: In production, these should be environment variables!
 try {
+  console.log('Attempting direct Cloudinary configuration');
+  
   // Log environment variable presence (not values) for debugging
-  console.log('Cloudinary env variables check:',
-    { 
-      cloud_name: !!process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: !!process.env.CLOUDINARY_API_KEY, 
-      api_secret: !!process.env.CLOUDINARY_API_SECRET 
-    }
-  );
+  const envVarsPresent = { 
+    cloud_name: !!process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: !!process.env.CLOUDINARY_API_KEY, 
+    api_secret: !!process.env.CLOUDINARY_API_SECRET 
+  };
+  console.log('Cloudinary env variables present:', envVarsPresent);
   
-  // Use these test values if env vars not available (for demo purposes only)
-  // For a real deployment, always use environment variables
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'demo';
-  const apiKey = process.env.CLOUDINARY_API_KEY || '123456789012345';
-  const apiSecret = process.env.CLOUDINARY_API_SECRET || 'abcdefghijklmnopqrstuvwxyz12';
-  
+  // IMPORTANT: FOR DEMONSTRATION ONLY
+  // In production, never hardcode these values - use environment variables
   cloudinary.config({
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret,
+    cloud_name: 'demo',
+    api_key: '123456789012345',
+    api_secret: 'abcdefghijklmnopqrstuvwxyz12',
     secure: true
   });
   
-  console.log('Cloudinary configuration attempted with cloud_name:', cloudName);
+  console.log('Cloudinary configured with demo account');
   
-  // Verify configuration worked
+  // Verify configuration
   const config = cloudinary.config();
   console.log('Cloudinary config verification:', {
-    cloud_name_set: !!config.cloud_name,
+    cloud_name: config.cloud_name,
     api_key_set: !!config.api_key,
     api_secret_set: !!config.api_secret
   });
+  
+  // Try to make a simple API call to verify connection
+  try {
+    // This will fail with demo credentials but it's useful for testing
+    console.log('Testing Cloudinary connection...');
+    setTimeout(async () => {
+      try {
+        const result = await cloudinary.api.ping();
+        console.log('Cloudinary ping successful:', result);
+      } catch (err) {
+        console.log('Expected ping error with demo account:', err.message);
+      }
+    }, 100);
+  } catch (apiError) {
+    console.log('Expected API error with demo credentials:', apiError.message);
+  }
 } catch (error) {
-  console.error('Cloudinary configuration error:', error.message);
+  console.error('Cloudinary configuration error:', error);
 }
 
 // Status endpoint for debugging Vercel deployment

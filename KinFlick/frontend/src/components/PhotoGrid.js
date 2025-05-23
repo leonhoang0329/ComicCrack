@@ -39,8 +39,15 @@ const PhotoGrid = ({ photos, onSelect, selectedIds = [], processingPhotoId = nul
           onClick={() => toggleSelect(photo._id)}
         >
           <img 
-            src={photo.cloudinaryUrl || photo.path} 
+            src={photo.cloudinaryUrl || photo.path || ''} 
             alt={photo.caption || 'Photo'} 
+            onError={(e) => {
+              console.log('Error loading image, attempting data URL fallback');
+              // If regular URL fails and we have a data URL path format, use it directly
+              if (e.target.src && !e.target.src.startsWith('data:') && photo.path && photo.path.startsWith('data:')) {
+                e.target.src = photo.path;
+              }
+            }}
           />
           {onSelect && (
             <div className="select-overlay">
