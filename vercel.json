@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "KinFlick/frontend/package.json", "use": "@vercel/static-build" },
+    { "src": "KinFlick/backend/server.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "KinFlick/backend/server.js" },
+    { "src": "/(.*)", "dest": "KinFlick/frontend/build/$1" }
+  ]
+}
