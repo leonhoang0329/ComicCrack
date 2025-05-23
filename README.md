@@ -1,4 +1,4 @@
-# KinFlick Comic Panel Generator
+# ComicCrack
 
 An application that uses Claude Vision to transform your photos into comic panels with witty punchlines and stories.
 
