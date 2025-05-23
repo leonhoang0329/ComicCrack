@@ -1,19 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "npm run install-all && cd KinFlick/frontend && npm run build",
-  "outputDirectory": "KinFlick/frontend/build",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" }
+  "builds": [
+    { "src": "api/index.js", "use": "@vercel/node" },
+    { "src": "KinFlick/frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "build" } }
   ],
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
     { "handle": "filesystem" },
-    { "src": "/static/(.*)", "dest": "/static/$1" },
-    { "src": "/(.*)\\.(js|css|json|png|jpg|svg|ico)", "dest": "/$1.$2" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "JWT_SECRET": "@jwt_secret",
-    "NODE_ENV": "production"
-  }
+    { "src": "/(.*)", "dest": "/KinFlick/frontend/build/$1" }
+  ]
 }
