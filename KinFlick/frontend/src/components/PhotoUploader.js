@@ -46,23 +46,29 @@ const PhotoUploader = ({ onUploadSuccess }) => {
       setUploading(true);
       setError(null);
 
+      // Log upload process
+      console.log(`Preparing to upload ${files.length} files`);
+      
       const formData = new FormData();
-      files.forEach(file => {
+      files.forEach((file, index) => {
+        console.log(`Adding file ${index + 1}/${files.length}: ${file.name} (${file.size} bytes)`);
         formData.append('photos', file);
       });
 
-      // Simulate progress
+      // Simulate progress with slower progress to allow more time for actual upload
       const interval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return prev;
+          if (prev >= 80) {
+            // Cap at 80% for simulated progress - the final 20% will be set when upload completes
+            return 80;
           }
-          return prev + 10;
+          return prev + 5;
         });
-      }, 300);
+      }, 500);
 
+      console.log('Starting upload to server...');
       const response = await uploadPhotos(formData);
+      console.log('Upload completed successfully:', response);
 
       clearInterval(interval);
       setUploadProgress(100);

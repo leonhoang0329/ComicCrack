@@ -4,6 +4,7 @@
   "outputDirectory": "KinFlick/frontend/build",
   "rewrites": [
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.js" },
+    { "source": "/api/cloudinary-test", "destination": "/api/cloudinary-test.js" },
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],

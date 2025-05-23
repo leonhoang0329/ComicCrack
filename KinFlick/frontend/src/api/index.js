@@ -34,8 +34,25 @@ export const uploadPhotos = async (formData) => {
     headers.Authorization = `Bearer ${token}`;
   }
   
-  const response = await axios.post(`${apiUrl}/api/photos/upload`, formData, { headers });
-  return response.data;
+  console.log('Starting photo upload process...');
+  
+  try {
+    // First check if Cloudinary is working by calling the test endpoint
+    const testResponse = await axios.get(`${apiUrl}/api/cloudinary-test`);
+    console.log('Cloudinary test result:', testResponse.data);
+    
+    // If test successful, proceed with the actual upload
+    const response = await axios.post(`${apiUrl}/api/photos/upload`, formData, { 
+      headers,
+      timeout: 60000 // Increase timeout to 60 seconds for larger uploads
+    });
+    
+    console.log('Upload successful:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Upload error:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export const getUserPhotos = async () => {
