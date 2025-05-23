@@ -32,23 +32,57 @@ try {
   console.error('Cloudinary configuration error:', error.message);
 }
 
+// Status endpoint for debugging Vercel deployment
+app.get('/api/debug-env', (req, res) => {
+  // Return boolean values indicating if env vars are set (not their values)
+  res.json({
+    environment: process.env.NODE_ENV || 'development',
+    env_vars_set: {
+      mongodb_uri: !!process.env.MONGODB_URI,
+      jwt_secret: !!process.env.JWT_SECRET,
+      cloudinary_cloud_name: !!process.env.CLOUDINARY_CLOUD_NAME,
+      cloudinary_api_key: !!process.env.CLOUDINARY_API_KEY,
+      cloudinary_api_secret: !!process.env.CLOUDINARY_API_SECRET
+    }
+  });
+});
+
 // Validate environment variables
 const envCheck = utils.validateEnvVars();
 if (!envCheck.isValid) {
   console.error('Missing required environment variables:', envCheck.missing);
 }
 
-// Connect to MongoDB
-if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
-} else {
-  console.error('MONGODB_URI not found in environment variables');
-}
+// Connect to MongoDB with retry logic
+let retryCount = 0;
+const MAX_RETRIES = 3;
+
+const connectWithRetry = () => {
+  if (process.env.MONGODB_URI) {
+    mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
+    })
+      .then(() => console.log('MongoDB connected'))
+      .catch(err => {
+        console.error(`MongoDB connection error (attempt ${retryCount + 1}/${MAX_RETRIES}):`, err.message);
+        
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          console.log(`Retrying in 3 seconds...`);
+          setTimeout(connectWithRetry, 3000); // Retry after 3 seconds
+        } else {
+          console.error('Max MongoDB connection retries reached, continuing without database');
+        }
+      });
+  } else {
+    console.error('MONGODB_URI not found in environment variables');
+  }
+};
+
+// Start connection process
+connectWithRetry();
 
 // Middleware for parsing JSON
 app.use(express.json({ limit: '50mb' }));
@@ -226,7 +260,10 @@ app.get('/api/status', (req, res) => {
   res.json({
     status: 'online',
     mongoConnection: mongoose.connection.readyState,
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    cloudinaryConfigured: !!(process.env.CLOUDINARY_CLOUD_NAME && 
+                           process.env.CLOUDINARY_API_KEY && 
+                           process.env.CLOUDINARY_API_SECRET)
   });
 });
 
@@ -504,7 +541,28 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({ message: 'API endpoint not found' });
 });
 
+// Default fallback route handler
+app.all('*', (req, res) => {
+  console.log(`Received request for non-existing route: ${req.method} ${req.url}`);
+  res.status(404).json({ 
+    message: 'API endpoint not found',
+    method: req.method,
+    url: req.url
+  });
+});
+
+// Handle any uncaught errors
+app.use((err, req, res, next) => {
+  console.error('Unhandled error in request:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'production' ? 'See server logs' : err.message
+  });
+});
+
 // Export the Express app as a serverless function
 module.exports = (req, res) => {
+  // Add request logging for debugging
+  console.log(`${req.method} ${req.url} - [${new Date().toISOString()}]`);
   app(req, res);
 };

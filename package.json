@@ -9,7 +9,7 @@
     "install-all": "npm install && cd KinFlick/backend && npm install && cd ../frontend && npm install",
     "build": "cd KinFlick/frontend && npm run build",
     "dev": "vercel dev",
-    "vercel-build": "npm run install-all && npm run build",
+    "vercel-build": "node api/build.js && npm run install-all && npm run build",
     "vercel-deploy": "vercel --prod"
   },
   "author": "",
