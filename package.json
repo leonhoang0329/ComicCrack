@@ -10,7 +10,8 @@
     "build": "cd KinFlick/frontend && npm run build",
     "dev": "vercel dev",
     "vercel-build": "node api/build.js && npm run install-all && npm run build",
-    "vercel-deploy": "vercel --prod"
+    "vercel-deploy": "vercel --prod",
+    "test-cloudinary": "node test-cloudinary.js"
   },
   "author": "",
   "license": "MIT",

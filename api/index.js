@@ -22,14 +22,38 @@ try {
   };
   console.log('Cloudinary env variables present:', envVarsPresent);
   
-  // IMPORTANT: FOR DEMONSTRATION ONLY
-  // In production, never hardcode these values - use environment variables
-  cloudinary.config({
-    cloud_name: 'demo',
-    api_key: '123456789012345',
-    api_secret: 'abcdefghijklmnopqrstuvwxyz12',
-    secure: true
+  // Try to read from environment variables first
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  
+  // Log vars without exposing values
+  console.log('Cloudinary vars present:', {
+    cloud_name: !!cloudName,
+    api_key: !!apiKey,
+    api_secret: !!apiSecret
   });
+  
+  if (cloudName && apiKey && apiSecret) {
+    // Use real environment variables
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+      secure: true
+    });
+    console.log(`Cloudinary configured with account: ${cloudName}`);
+  } else {
+    // Fall back to demo credentials - FOR DEMONSTRATION ONLY
+    // In production, never hardcode these values
+    console.warn('⚠️ Using demo Cloudinary account - uploads will be simulated');
+    cloudinary.config({
+      cloud_name: 'demo',
+      api_key: '123456789012345',
+      api_secret: 'abcdefghijklmnopqrstuvwxyz12',
+      secure: true
+    });
+  }
   
   console.log('Cloudinary configured with demo account');
   

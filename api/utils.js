@@ -65,8 +65,39 @@ exports.handleCloudinaryUpload = async (cloudinary, fileStr, options) => {
     });
     
     try {
-      // Perform the upload
-      const result = await cloudinary.uploader.upload(fileStr, uploadOptions);
+      console.log('Direct upload attempt to Cloudinary starting...');
+      
+      // Add additional debugging
+      if (typeof cloudinary.uploader.upload !== 'function') {
+        console.error('CRITICAL ERROR: cloudinary.uploader.upload is not a function!');
+        throw new Error('Cloudinary uploader not available');
+      }
+
+      // Add timeout and direct promise handling for more control
+      const uploadPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Cloudinary upload timed out after 30 seconds'));
+        }, 30000);
+        
+        cloudinary.uploader.upload(fileStr, uploadOptions)
+          .then(result => {
+            clearTimeout(timeout);
+            resolve(result);
+          })
+          .catch(err => {
+            clearTimeout(timeout);
+            reject(err);
+          });
+      });
+      
+      // Wait for the upload with explicit timeout handling
+      const result = await uploadPromise;
+      
+      // Validate response
+      if (!result || !result.secure_url) {
+        console.error('Cloudinary returned invalid response:', result);
+        throw new Error('Invalid response from Cloudinary');
+      }
       
       console.log('Cloudinary upload successful:', {
         public_id: result.public_id,
@@ -78,6 +109,7 @@ exports.handleCloudinaryUpload = async (cloudinary, fileStr, options) => {
       return { success: true, data: result };
     } catch (uploadError) {
       console.error('Cloudinary upload failed, using fallback:', uploadError.message);
+      console.error('Full error:', uploadError);
       
       // Fallback for failed uploads - store as data URL
       const mockPublicId = `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
