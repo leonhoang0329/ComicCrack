@@ -1,6 +1,7 @@
 // Load environment variables
 require('dotenv').config();
 
+// Node.js version: This file is compatible with Node.js 18.x
 // Import dependencies
 const express = require('express');
 const cors = require('cors');
