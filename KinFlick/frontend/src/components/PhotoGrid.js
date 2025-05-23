@@ -23,13 +23,16 @@ const PhotoGrid = ({ photos, onSelect, selectedIds = [], processingPhotoId = nul
     }
   };
 
-  if (!photos || photos.length === 0) {
+  // Ensure photos is an array
+  const photoArray = Array.isArray(photos) ? photos : [];
+  
+  if (!photoArray.length) {
     return <p className="no-photos-message">No photos available</p>;
   }
 
   return (
     <div className="photo-grid">
-      {photos.map(photo => (
+      {photoArray.map(photo => (
         <div 
           key={photo._id} 
           className={`photo-item ${selectedIds.includes(photo._id) ? 'selected' : ''} ${processingPhotoId === photo._id ? 'processing' : ''}`}
