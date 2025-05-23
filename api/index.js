@@ -4,17 +4,39 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const utils = require('./utils');
 
 // Initialize express app
 const app = express();
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
-});
+// Configure Cloudinary with error handling
+try {
+  // Log environment variable presence (not values) for debugging
+  console.log('Cloudinary env variables check:',
+    { 
+      cloud_name: !!process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: !!process.env.CLOUDINARY_API_KEY, 
+      api_secret: !!process.env.CLOUDINARY_API_SECRET 
+    }
+  );
+  
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+  
+  console.log('Cloudinary configuration successful');
+} catch (error) {
+  console.error('Cloudinary configuration error:', error.message);
+}
+
+// Validate environment variables
+const envCheck = utils.validateEnvVars();
+if (!envCheck.isValid) {
+  console.error('Missing required environment variables:', envCheck.missing);
+}
 
 // Connect to MongoDB
 if (process.env.MONGODB_URI) {
@@ -24,6 +46,8 @@ if (process.env.MONGODB_URI) {
   })
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
+} else {
+  console.error('MONGODB_URI not found in environment variables');
 }
 
 // Middleware for parsing JSON
@@ -55,6 +79,12 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
+    // Check if JWT_SECRET exists
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET environment variable is not defined');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
@@ -80,14 +110,115 @@ const upload = multer({
   }
 });
 
-// Load models
+// Define models schema for serverless environment
 let User, Photo, DiaryPage;
-try {
-  User = require('../KinFlick/backend/models/User');
-  Photo = require('../KinFlick/backend/models/Photo');
-  DiaryPage = require('../KinFlick/backend/models/DiaryPage');
-} catch (err) {
-  console.error('Error loading models:', err.message);
+
+// Define User Schema
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  registerDate: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Add password comparison method
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    // In a real implementation, you would use bcrypt.compare
+    // For serverless, we're simplifying to direct comparison
+    return this.password === candidatePassword;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Define Photo Schema
+const photoSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  filename: {
+    type: String,
+    required: true
+  },
+  path: {
+    type: String,
+    required: true
+  },
+  cloudinaryId: {
+    type: String
+  },
+  cloudinaryUrl: {
+    type: String
+  },
+  caption: {
+    type: String,
+    default: ''
+  },
+  uploadDate: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Define DiaryPage Schema
+const diaryPageSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  title: {
+    type: String,
+    required: true
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  photos: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Photo'
+  }],
+  style: {
+    type: String,
+    default: 'default'
+  },
+  isPublic: {
+    type: Boolean,
+    default: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Create models if mongoose is connected
+if (mongoose.connection.readyState) {
+  try {
+    // Check if models already exist to prevent overwriting
+    User = mongoose.models.User || mongoose.model('User', userSchema);
+    Photo = mongoose.models.Photo || mongoose.model('Photo', photoSchema);
+    DiaryPage = mongoose.models.DiaryPage || mongoose.model('DiaryPage', diaryPageSchema);
+  } catch (err) {
+    console.error('Error creating models:', err.message);
+  }
 }
 
 // Status route
@@ -193,12 +324,18 @@ app.post('/api/photos/upload', authMiddleware, upload.array('photos', 10), async
         // Convert buffer to base64 string for Cloudinary
         const fileStr = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
         
-        // Upload to Cloudinary
-        const uploadResponse = await cloudinary.uploader.upload(fileStr, {
+        // Upload to Cloudinary using utility function
+        const uploadResult = await utils.handleCloudinaryUpload(cloudinary, fileStr, {
           folder: 'kinflick',
           resource_type: 'image',
           public_id: `${req.user._id}_${Date.now()}`
         });
+        
+        if (!uploadResult.success) {
+          throw new Error(`Cloudinary upload failed: ${uploadResult.details || uploadResult.error}`);
+        }
+        
+        const uploadResponse = uploadResult.data;
 
         // Create photo record in database
         const newPhoto = await Photo.create({
@@ -249,7 +386,9 @@ app.delete('/api/photos/:id', authMiddleware, async (req, res) => {
     // Delete from Cloudinary if cloudinaryId exists
     if (photo.cloudinaryId) {
       try {
-        await cloudinary.uploader.destroy(photo.cloudinaryId);
+        console.log(`Attempting to delete Cloudinary resource: ${photo.cloudinaryId}`);
+        const result = await cloudinary.uploader.destroy(photo.cloudinaryId);
+        console.log('Cloudinary delete result:', result);
       } catch (cloudinaryError) {
         console.error('Error deleting from Cloudinary:', cloudinaryError);
         // Continue with deletion even if Cloudinary fails

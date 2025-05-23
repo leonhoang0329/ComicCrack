@@ -13,9 +13,10 @@ An application that uses Claude Vision to transform your photos into comic panel
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - MongoDB (optional)
 - Claude API key
+- Cloudinary account (for image storage)
 
 ### Setup
 
@@ -33,14 +34,45 @@ An application that uses Claude Vision to transform your photos into comic panel
 3. Set up environment variables:
    - Create a `.env` file in the `KinFlick/backend` directory
    - Add your Claude API key: `CLAUDE_API_KEY=your_api_key_here`
-   - (Optional) Add MongoDB connection string: `MONGODB_URI=your_mongodb_uri`
+   - Add MongoDB connection string: `MONGODB_URI=your_mongodb_uri`
+   - Add Cloudinary credentials:
+     ```
+     CLOUDINARY_CLOUD_NAME=your_cloud_name
+     CLOUDINARY_API_KEY=your_api_key
+     CLOUDINARY_API_SECRET=your_api_secret
+     ```
+   - Add JWT secret: `JWT_SECRET=your_jwt_secret`
 
 4. Start the application:
    ```
    bash unified-start.sh
    ```
 
-## Deployment
+## Vercel Deployment
+
+### Requirements
+
+To deploy this application on Vercel:
+
+1. Fork or clone this repository to your GitHub account
+2. Connect your GitHub repository to Vercel
+3. Configure the following environment variables in the Vercel dashboard:
+   - `MONGODB_URI`: Your MongoDB connection string
+   - `JWT_SECRET`: Secret for JWT token generation
+   - `CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
+   - `CLOUDINARY_API_KEY`: Your Cloudinary API key
+   - `CLOUDINARY_API_SECRET`: Your Cloudinary API secret
+
+### Troubleshooting Deployment Issues
+
+If you encounter deployment issues:
+
+1. Check that all environment variables are properly set in the Vercel dashboard
+2. Verify Cloudinary credentials are correct
+3. Review Vercel build logs for any specific error messages
+4. Ensure MongoDB connection string is valid and accessible from Vercel's servers
+
+## Other Deployment Options
 
 ### Frontend Deployment to GitHub Pages
 
