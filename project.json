@@ -1,0 +1,8 @@
+{
+  "projectId": "prj_yourVercelProjectId",
+  "orgId": "team_yourVercelOrgId",
+  "buildCommand": "cd KinFlick/frontend && npm install && npm run build",
+  "outputDirectory": "KinFlick/frontend/build",
+  "framework": "create-react-app",
+  "devCommand": "cd KinFlick/frontend && npm start"
+}
