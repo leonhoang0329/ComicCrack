@@ -1,25 +1,48 @@
 import axios from 'axios';
 
-// Configure axios with credentials
-axios.defaults.withCredentials = true;
+// Configure axios base URL for Vercel
+const apiUrl = process.env.REACT_APP_API_URL || '';
+
+// Create axios instance with defaults
+const api = axios.create({
+  baseURL: apiUrl,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add authentication token to requests
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Photo API calls
 export const uploadPhotos = async (formData) => {
-  const response = await axios.post('/api/photos/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
+  // For multipart/form-data, we need different headers
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'multipart/form-data'
+  };
+  
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  
+  const response = await axios.post(`${apiUrl}/api/photos/upload`, formData, { headers });
   return response.data;
 };
 
 export const getUserPhotos = async () => {
-  const response = await axios.get('/api/photos');
+  const response = await api.get('/api/photos');
   return response.data;
 };
 
 export const deletePhoto = async (id) => {
-  const response = await axios.delete(`/api/photos/${id}`);
+  const response = await api.delete(`/api/photos/${id}`);
   return response.data;
 };
 
@@ -56,7 +79,7 @@ export const createDiaryPage = async (photoIds, progressCallback) => {
     }, 3000); // Update every 3 seconds
     
     // Make the regular POST request
-    const response = await axios.post('/api/diary', { photoIds });
+    const response = await api.post('/api/diary', { photoIds });
     
     // Clear the interval when done
     clearInterval(progressInterval);
@@ -87,16 +110,16 @@ export const createDiaryPage = async (photoIds, progressCallback) => {
 };
 
 export const getUserDiaryPages = async () => {
-  const response = await axios.get('/api/diary');
+  const response = await api.get('/api/diary');
   return response.data;
 };
 
 export const getDiaryPage = async (id) => {
-  const response = await axios.get(`/api/diary/${id}`);
+  const response = await api.get(`/api/diary/${id}`);
   return response.data;
 };
 
 export const deleteDiaryPage = async (id) => {
-  const response = await axios.delete(`/api/diary/${id}`);
+  const response = await api.delete(`/api/diary/${id}`);
   return response.data;
 };

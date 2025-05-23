@@ -2,16 +2,10 @@ const Photo = require('../models/Photo');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cloudinary = require('../utils/cloudinary');
 
-// Set storage engine
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
+// For Vercel deployment - use memory storage instead of disk
+const storage = multer.memoryStorage();
 
 // Check file type
 const fileFilter = (req, file, cb) => {
@@ -45,15 +39,38 @@ exports.uploadPhotos = async (req, res) => {
 
     const photos = [];
 
+    // Process each file
     for (const file of req.files) {
-      const newPhoto = await Photo.create({
-        user: req.user._id,
-        filename: file.filename,
-        path: file.path,
-        caption: ''
-      });
+      try {
+        // Convert buffer to base64 string for Cloudinary
+        const fileStr = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+        
+        // Upload to Cloudinary
+        const uploadResponse = await cloudinary.uploader.upload(fileStr, {
+          folder: 'kinflick',
+          resource_type: 'image',
+          public_id: `${req.user._id}_${Date.now()}`
+        });
 
-      photos.push(newPhoto);
+        // Create photo record in database
+        const newPhoto = await Photo.create({
+          user: req.user._id,
+          filename: file.originalname,
+          path: uploadResponse.secure_url,  // Use the Cloudinary URL
+          cloudinaryId: uploadResponse.public_id,
+          cloudinaryUrl: uploadResponse.secure_url,
+          caption: ''
+        });
+
+        photos.push(newPhoto);
+      } catch (uploadError) {
+        console.error('Error uploading to Cloudinary:', uploadError);
+        // Continue with next file
+      }
+    }
+
+    if (photos.length === 0) {
+      return res.status(500).json({ message: 'Failed to upload any photos to cloud storage' });
     }
 
     res.status(201).json({
@@ -62,6 +79,7 @@ exports.uploadPhotos = async (req, res) => {
       photos
     });
   } catch (error) {
+    console.error('Error in uploadPhotos:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -92,14 +110,22 @@ exports.deletePhoto = async (req, res) => {
       return res.status(401).json({ message: 'User not authorized' });
     }
 
-    // Delete photo file
-    fs.unlinkSync(photo.path);
+    // Delete from Cloudinary if cloudinaryId exists
+    if (photo.cloudinaryId) {
+      try {
+        await cloudinary.uploader.destroy(photo.cloudinaryId);
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary:', cloudinaryError);
+        // Continue with deletion even if Cloudinary fails
+      }
+    }
     
     // Delete from DB
     await photo.deleteOne();
 
     res.json({ message: 'Photo deleted' });
   } catch (error) {
+    console.error('Error in deletePhoto:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

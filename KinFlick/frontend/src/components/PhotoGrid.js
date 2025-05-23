@@ -39,7 +39,7 @@ const PhotoGrid = ({ photos, onSelect, selectedIds = [], processingPhotoId = nul
           onClick={() => toggleSelect(photo._id)}
         >
           <img 
-            src={`${process.env.REACT_APP_API_URL || ''}/${photo.path}`} 
+            src={photo.cloudinaryUrl || photo.path} 
             alt={photo.caption || 'Photo'} 
           />
           {onSelect && (
