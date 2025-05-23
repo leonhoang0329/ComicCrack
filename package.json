@@ -8,7 +8,9 @@
     "start-frontend": "cd KinFlick/frontend && npm start",
     "install-all": "npm install && cd KinFlick/backend && npm install && cd ../frontend && npm install",
     "build": "cd KinFlick/frontend && npm run build",
-    "vercel-build": "npm run install-all && npm run build"
+    "dev": "vercel dev",
+    "vercel-build": "npm run install-all && npm run build",
+    "vercel-deploy": "vercel --prod"
   },
   "author": "",
   "license": "MIT",
@@ -19,7 +21,8 @@
     "mongoose": "^7.0.0"
   },
   "devDependencies": {
-    "gh-pages": "^6.3.0"
+    "gh-pages": "^6.3.0",
+    "vercel": "^31.4.0"
   },
   "engines": {
     "node": "18.x"
