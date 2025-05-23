@@ -1,0 +1,18 @@
+{
+  "files": {
+    "main.css": "/ComicCrack/static/css/main.1126a8a9.css",
+    "main.js": "/ComicCrack/static/js/main.d7fcc1d1.js",
+    "static/js/977.f7d0e703.chunk.js": "/ComicCrack/static/js/977.f7d0e703.chunk.js",
+    "static/js/455.b927da47.chunk.js": "/ComicCrack/static/js/455.b927da47.chunk.js",
+    "static/media/logo.png": "/ComicCrack/static/media/logo.bf79a7ae3723e97ba194.png",
+    "index.html": "/ComicCrack/index.html",
+    "main.1126a8a9.css.map": "/ComicCrack/static/css/main.1126a8a9.css.map",
+    "main.d7fcc1d1.js.map": "/ComicCrack/static/js/main.d7fcc1d1.js.map",
+    "977.f7d0e703.chunk.js.map": "/ComicCrack/static/js/977.f7d0e703.chunk.js.map",
+    "455.b927da47.chunk.js.map": "/ComicCrack/static/js/455.b927da47.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.1126a8a9.css",
+    "static/js/main.d7fcc1d1.js"
+  ]
+}
